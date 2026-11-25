@@ -99,6 +99,35 @@ def test_build_messages_with_history():
     assert messages[-1]["content"] == "那罚款呢？"
 
 
+def test_build_messages_limits_history_rounds():
+    """历史应只保留最近 HISTORY_ROUNDS 轮，防止长会话上下文膨胀。"""
+    results = [{"title": "t", "source": "s", "content": "c"}]
+    # 构造超过 HISTORY_ROUNDS 轮的历史
+    history = [
+        {"user": f"问题{i}？", "assistant": f"回答{i}。"}
+        for i in range(Config.HISTORY_ROUNDS + 3)
+    ]
+    messages = build_messages("那罚款呢？", results, history=history)
+    # 历史 user 轮次数量 = HISTORY_ROUNDS（不含当前问题）
+    user_turns = [m for m in messages if m["role"] == "user"]
+    assert len(user_turns) == Config.HISTORY_ROUNDS + 1  # 含当前问题
+    # 最早的历史轮次应被丢弃
+    assert "问题0？" not in [m["content"] for m in messages]
+    assert messages[-1]["content"] == "那罚款呢？"
+
+
+def test_build_messages_trims_long_history_answer():
+    """历史里的超长 assistant 回答应被截断，避免噪声挤占上下文。"""
+    results = [{"title": "t", "source": "s", "content": "c"}]
+    long_answer = "这是结论。" + "补充细节说明。" * 100
+    messages = build_messages(
+        "那怎么办？", results, history=[{"user": "闯红灯扣几分？", "assistant": long_answer}]
+    )
+    assistant = [m for m in messages if m["role"] == "assistant"][0]
+    assert len(assistant["content"]) < len(long_answer)
+    assert assistant["content"].startswith("这是结论。")
+
+
 def test_ngram_dedup():
     from knowledge_base.vector_store import VectorStore
 
@@ -160,6 +189,25 @@ def test_guard_new_domains_allowed():
               "无人机要实名登记吗？", "动车组儿童票怎么买？", "航班延误能赔偿吗？",
               "高铁能带多少行李？", "地铁首末班车几点？"]:
         assert is_off_topic(q) is False, q
+
+
+def test_guard_emerging_mobility_allowed():
+    """新兴出行工具与共享交通（网约车、共享单车、滑板车等）应放行。"""
+    from rag.guard import is_off_topic
+
+    for q in ["网约车司机需要什么证？", "共享单车骑到机动车道会被罚吗？",
+              "电动滑板车能上路吗？", "代驾出事故谁负责？", "顺风车和网约车有什么区别？",
+              "电动平衡车能上公路吗？", "共享汽车出事故怎么处理？"]:
+        assert is_off_topic(q) is False, q
+
+
+def test_guard_still_blocks_new_unrelated():
+    """新增领域词后，纯离题问题（含新增离题词）仍应拦截。"""
+    from rag.guard import is_off_topic
+
+    for q in ["帮我点个外卖", "我家猫生病了怎么办？", "怎么装修新房？",
+              "信用卡怎么提额？", "帮我算道数学题"]:
+        assert is_off_topic(q) is True, q
 
 
 def test_guard_still_blocks_unrelated():
@@ -265,6 +313,18 @@ def test_pipeline_query_rewrite():
     assert p._rewrite_query("那怎么办？", [{"user": "你好", "assistant": "你好"}]) == "那怎么办？"
     # 非追问（不含 FOLLOWUP_MARKERS）且无术语：不做融合（避免误伤）
     assert p._rewrite_query("你好", [{"user": "闯红灯扣几分？", "assistant": "记6分"}]) == "你好"
+
+
+def test_pipeline_query_rewrite_self_sufficient():
+    """当前问题已含强主题术语时应自足，不融合上一轮主题（避免主题污染）。"""
+    from rag.pipeline import RAGPipeline
+
+    p = RAGPipeline(store=_FakeStore(), llm=_FakeLLM())
+    # 「那高铁呢」已含「高铁」强主题词，不应被上一轮「汽车」主题污染
+    history = [{"user": "汽车超速怎么处罚？", "assistant": "……"}]
+    rewritten = p._rewrite_query("那高铁呢？", history)
+    assert "汽车" not in rewritten
+    assert rewritten == "那高铁呢？"
 
 
 def test_flask_stop_route():

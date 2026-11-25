@@ -111,6 +111,26 @@ def build_system_prompt(
     )
 
 
+# 历史回答截断的最大字符数：多轮对话里历史 assistant 的完整回答（含引用标注
+# 与长篇展开）塞回 Prompt 会引入大量噪声并挤占上下文。这里只保留每条历史回答
+# 的前缀（结论通常在最前面），在保证指代可理解的前提下控制上下文膨胀。
+_HISTORY_ANSWER_MAX_CHARS = 120
+
+
+def _trim_history_answer(answer: str) -> str:
+    """截断历史回答，只保留结论前缀，去掉引用标注与冗长展开。"""
+    text = (answer or "").strip()
+    if len(text) <= _HISTORY_ANSWER_MAX_CHARS:
+        return text
+    # 优先在句末符号处断开，避免截断半个句子
+    cut = text.rfind("。", 0, _HISTORY_ANSWER_MAX_CHARS)
+    if cut < 0:
+        cut = text.rfind("；", 0, _HISTORY_ANSWER_MAX_CHARS)
+    if cut < 0:
+        cut = _HISTORY_ANSWER_MAX_CHARS
+    return text[: cut + 1].strip()
+
+
 def build_messages(
     query: str,
     results: List[Dict[str, Any]],
@@ -118,18 +138,33 @@ def build_messages(
     version: str = "v3",
     verbosity: str = "standard",
 ) -> List[Dict[str, str]]:
-    """构造完整的 Ollama chat messages（system + 历史轮次 + 当前问题）。"""
+    """构造完整的 Ollama chat messages（system + 历史轮次 + 当前问题）。
+
+    历史处理规则：
+    - 只取最近 Config.HISTORY_ROUNDS 轮（默认 5），防止长会话上下文无限膨胀；
+    - 历史里的 assistant 回答做截断，只保留结论前缀，减少噪声并省 token。
+    """
     messages: List[Dict[str, str]] = [
         {
             "role": "system",
             "content": build_system_prompt(query, results, version, verbosity=verbosity),
         }
     ]
-    for turn in history or []:
+
+    # 只保留最近 N 轮，且跳过无内容的空轮次
+    recent = list(history or [])
+    if Config.HISTORY_ROUNDS > 0:
+        recent = [t for t in recent if t.get("user") or t.get("assistant")][
+            -Config.HISTORY_ROUNDS :
+        ]
+
+    for turn in recent:
         if turn.get("user"):
             messages.append({"role": "user", "content": str(turn["user"])})
         if turn.get("assistant"):
-            messages.append({"role": "assistant", "content": str(turn["assistant"])})
+            messages.append(
+                {"role": "assistant", "content": _trim_history_answer(str(turn["assistant"]))}
+            )
     messages.append({"role": "user", "content": query})
     return messages
 

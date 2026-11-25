@@ -49,6 +49,10 @@ class RAGPipeline:
             )
         return self.store.search_by_text(query, top_k=top_k)
 
+    # 当前问题若不含交通领域术语，且像追问时，才需要依赖历史做指代消解。
+    # 若问题本身已含强主题词（如「高铁」），则无需融合，避免历史主题污染检索。
+    _GENERIC_REFERENCE_TERMS = ("罚款", "扣分", "记分", "处罚", "怎么办", "这样", "那")
+
     def _rewrite_query(
         self,
         query: str,
@@ -59,14 +63,22 @@ class RAGPipeline:
         短追问（如「那罚款呢？」「那怎么办」）省略了指代对象，直接用原文检索
         会跑偏。这里把历史最近一轮用户问题中的交通术语补进当前查询，
         让检索能命中上一轮真正讨论的条款。
-        无历史、或当前问题已含明确的强主题术语时，原样返回，不做改写。
 
-        注意：「罚款」「扣分」「记分」等泛化术语本身就需要指代消解，
-        不能据此判定问题已自足，因此这里不拦截——只要像追问就融合历史。
+        升级点：
+        1. 只在「当前问题缺强主题术语」时才融合历史，避免「那高铁呢」这类
+           已自足的追问被上一轮的「汽车」主题词污染；
+        2. 融合时用上一轮问题的「完整原文 + 命中术语」双信号，比只拼术语
+           能保留更多语义上下文（如上一轮问的是「高速公路」，追问「限速呢」）。
         """
         if not history:
             return query
         if not looks_like_followup(query):
+            return query
+
+        # 当前问题已含明确交通术语（且非「罚款/扣分」等泛化指代词），
+        # 说明它已自足，无需融合历史，避免主题被上一轮污染。
+        own_terms = [t for t in hit_domain_terms(query) if t not in self._GENERIC_REFERENCE_TERMS]
+        if own_terms:
             return query
 
         # 取最近一轮用户问题，抽取其交通术语作为「指代主题」
@@ -79,8 +91,9 @@ class RAGPipeline:
         if not terms:
             return query
 
-        # 融合：历史主题词 + 当前追问原文，避免语义被追问中的虚词稀释
-        merged = " ".join(terms) + " " + query
+        # 融合：上一轮原文（截断）+ 命中术语 + 当前追问，保留更完整的语义上下文
+        last_user_trimmed = last_user[:80]
+        merged = " ".join(terms) + " " + last_user_trimmed + " " + query
         return merged
 
     def answer_stream(
