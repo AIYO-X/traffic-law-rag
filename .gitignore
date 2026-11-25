@@ -1,0 +1,20 @@
+# 忽略向量库数据（由脚本重建）
+data/lancedb/
+data/*.lance
+
+# 运行时生成的文件（会话历史、访问日志、会话文件备份）
+data/sessions.json
+data/sessions.json.bak
+data/sessions.json.tmp
+data/access.log
+
+# Python 缓存
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/

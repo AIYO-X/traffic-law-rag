@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html data-page-node-id="Bi08798EDwAENvs4n8NiHU" lang="zh-CN"><head data-page-node-id="LjNTVIZZMA64GDK4exLOIF">
+  <meta data-page-node-id="fe77AY1iD6AERHp5IgyRb6" charset="UTF-8">
+  <meta data-page-node-id="qbMDd0GY5jxjyFo8gy30yp" name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta data-page-node-id="TruUBX4YsVFH2DOhkQDwq9" name="theme-color" content="#0b1e33">
+  <title>中国交通出行法规智能问答系统</title>
+  <meta name="description" content="基于 Ollama 与 LanceDB 的中国交通出行法规检索增强问答系统，覆盖道路、高速、铁路高铁、地铁、民航等领域，回答标注法规出处，支持流式输出、多轮对话与随时打断。">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b1e33'/%3E%3Cpath d='M32 12v40M16 32h32' stroke='%23f59e0b' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link data-page-node-id="gXMtdtf5HWec8EzBXmNGUK" rel="stylesheet" href="static/css/style.css">
+</head>
+<body data-page-node-id="6RTiRxRIEw5HEI9U7KeVPi">
+  <header data-page-node-id="BBhJHEprGnTbWk7IVbKKEg" class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">法</div>
+      <div class="brand-text">
+        <h1>中国交通出行法规智能助手</h1>
+        <p>本地大模型 · 检索增强 · 答案可溯源</p>
+      </div>
+    </div>
+    <div data-page-node-id="NHDexGsyoKTAzFQISI9qVi" class="topbar-actions">
+      <span data-page-node-id="p3AtadGBOVMgFAwVYWmTx2" id="statusBadge" class="badge badge-pending" title="环境状态">环境检测中…</span>
+      <button data-page-node-id="5MzGrnpEqsMDEA1AUZ6GjU" id="clearBtn" class="btn-ghost" type="button">
+        <svg data-page-node-id="fAUIqDDo4ENDpfW5y6wvF8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path data-page-node-id="HnXBN7lcAE8BucB9ZxN6xU" d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v5M14 11v5"></path>
+        </svg>
+        清空对话
+      </button>
+    </div>
+  </header>
+
+  <main data-page-node-id="i0Hxj9EwIFeMQZNAmKX48T" class="layout">
+    <section data-page-node-id="mmaJXXmaXBtjKKHrXDEUcn" class="chat-panel" aria-label="智能问答">
+      <div data-page-node-id="97ovws6AnMMR6OGvhOyiio" class="chat-header">
+        
+        <span data-page-node-id="k3NnvPCW2olNxsiMJYS7fB">检索增强生成 · 答案可溯源</span>
+      </div>
+
+      <div data-page-node-id="BvQUTmEGeztn5wtFdV7OMj" id="messages" class="messages" role="log" aria-live="polite">
+        <div data-page-node-id="8vmHn99z54asvNMiPDcuEr" class="welcome">
+          <h2 data-page-node-id="qzZGSjY304i4HJKHNEIexu">你好，我是交通出行法规助手</h2>
+          <p data-page-node-id="DOMc18lbPGNtE3CvBjk2EG">你可以直接提问，或描述具体情形。我会从法规知识库中检索依据，并标注出处；回答过程中也能随时输入新问题，或点「停止生成」打断。我的知识覆盖道路驾驶、高速公路、铁路高铁、地铁轻轨和民航出行。</p>
+          <ul data-page-node-id="e7WipwaVxATkVhQzYuQxdQ">
+            <li data-page-node-id="ZgjsFW9C9gApArXrxOxCKB">闯红灯扣几分、罚款多少？</li>
+            <li data-page-node-id="MNqzsTyAXYbVNq9DKxGufY">高铁上吸烟会怎么处罚？</li>
+            <li data-page-node-id="xNahsoCu3oHbWmKjEVuH3Q">充电宝能带上飞机吗？</li>
+            <li data-page-node-id="n2LKLQrTSsmFSbsAcXAGM2">地铁逃票会被罚款吗？</li>
+          </ul>
+          <p data-page-node-id="cwAqnN0IUL1nEq6sGMhUlm" class="welcome-note">知识库法规片段 <span data-page-node-id="5hUeEWg4RcOJe3va9H0cLf" id="kbCount">—</span> 条 · 所有回答均标注法规出处，仅供学习参考，执法认定以主管部门为准。</p>
+        </div>
+      </div>
+
+      <div data-page-node-id="26WCJxabN0Sr0UM4O3RbQT" class="quick-questions">
+        <span data-page-node-id="IhhkxKdt2x6XHxQLXnPi6W" class="quick-label">常见问题</span>
+        <button data-page-node-id="IqQ3oi8SzoNPwlHl733HjV" type="button" data-q="闯红灯扣几分？罚款多少？">闯红灯的处罚</button>
+        <button data-page-node-id="5GdGU8szUvJdjQCGnSir7I" type="button" data-q="高铁上吸烟会怎么处罚？">高铁吸烟</button>
+        <button data-page-node-id="nY1vbDpRnmzQFkCAOcCkZk" type="button" data-q="充电宝能带上飞机吗？">飞机带充电宝</button>
+        <button data-page-node-id="DsJzJk9rxwvc4iGHDCRQB5" type="button" data-q="地铁逃票会被罚款吗？">地铁逃票</button>
+      </div>
+
+      <form data-page-node-id="89UfcsZ4W139lbHGZrhrED" id="chatForm" class="input-area" autocomplete="off">
+        <textarea data-page-node-id="jHfRNvYe6eiDMncnTjbO3V" id="questionInput" rows="2" aria-label="输入交通出行法规问题" placeholder="请输入你的交通出行法规问题（道路/高速/高铁/地铁/民航），或描述具体情形…（Enter 发送，Shift+Enter 换行）"></textarea>
+        <button data-page-node-id="XisMBrZulpHFxbW9iqvgm8" id="sendBtn" type="submit">
+          <svg data-page-node-id="HLrQvu1ZNzdMLJGtV5x71v" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path data-page-node-id="h72dqTJazBOwSNEC9QXiBC" d="M4 12h15M13 6l6 6-6 6"></path>
+          </svg>
+          发送
+        </button>
+        <button id="stopBtn" class="stop-btn" type="button" title="停止生成" aria-label="停止生成">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor"></rect>
+          </svg>
+          <span>停止生成</span>
+        </button>
+      </form>
+
+      <div data-page-node-id="PvSKfg3bQoxLnflhrWj0kD" class="status-row">
+        <span data-page-node-id="6kKFnQFh2fp2VDmGhJF18w" id="statusLine" class="status-line"></span>
+        <span data-page-node-id="dW1jo9aOFtXYkNJNW588de" class="disclaimer">本系统依据公开法规整理，不构成法律意见。</span>
+      </div>
+    </section>
+
+    <aside data-page-node-id="dq8naDxI2XnGpdVgmihhAU" class="source-panel" aria-label="检索到的法规依据">
+      <div data-page-node-id="8yUZ0wBZonKZQvFHU2Rm0l" class="source-header">
+        <h2 data-page-node-id="EvPPVhjUaBTh15lOr9Gmju">检索到的法规依据</h2>
+        <span data-page-node-id="AxDPD214WmkpVkABdrMxmq" class="source-hint">点击回答中的 [1] 可定位对应条款</span>
+      </div>
+      <div data-page-node-id="r0h23ZNzF5O6rlwQCrZ4yF" id="sourceList" class="source-list">
+        <p data-page-node-id="HpyR5I3B6imocq9gsLgFOE" class="empty">提问后，这里会显示系统从知识库中检索到的相关法规片段、出处与相似度。</p>
+      </div>
+    </aside>
+  </main>
+
+  <script data-page-node-id="CYsgyGRxNBfOIIQ9vD1DUv" src="static/js/app.js"></script>
+
+
+</body></html>
