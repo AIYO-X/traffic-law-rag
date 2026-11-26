@@ -7,7 +7,7 @@ LanceDB 向量存储与语义检索
 2. 基于余弦相似度执行 Top-K 语义检索（混合关键词加权）；
 3. 实现多层检索优化：阈值过滤 → 同源限流 → 内容去重。
 
-相似度计算说明（实验报告可直接引用）：
+相似度计算说明：
 - LanceDB 的 cosine metric 返回余弦距离 d = 1 - cos(θ)，范围约 [0, 2]；
 - 本项目转换为相似度 score = 1 - d，范围 [-1, 1]，值越大越相关；
 - 混合检索：最终得分 = 语义相似度 + KEYWORD_BOOST_WEIGHT × 关键词命中率；
@@ -238,7 +238,7 @@ class VectorStore:
             )
             item = dict(row)
             item["score"] = round(final_score, 4)
-            # 记录精排引入的标题命中信号，便于实验报告与调参
+            # 记录精排引入的标题命中信号，便于调参与问题排查
             item["title_hit"] = round(title_hit, 4)
             reranked.append(item)
         reranked.sort(key=lambda x: x["score"], reverse=True)

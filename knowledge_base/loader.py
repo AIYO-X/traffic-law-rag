@@ -7,7 +7,7 @@
 2. 将过长的知识片段按句子边界切分为带重叠的 chunk，避免语义被切断；
 3. 为每个 chunk 保留标题、出处、分类、标签等溯源信息。
 
-分段策略说明（实验报告可直接引用）：
+分段策略说明：
 - 以「条」为基本语义单元：每条法规知识本身就是一个完整知识点；
 - 仅当单条内容超过 CHUNK_SIZE 时才二次切分；
 - 切分优先在句号、问号、感叹号、分号、换行处断开，保证语义完整；
@@ -150,7 +150,7 @@ def build_chunks(
 
 
 def chunk_stats(chunks: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """统计分段结果，供建库脚本与实验报告使用。"""
+    """统计分段结果，供建库脚本使用。"""
     if not chunks:
         return {"chunk_count": 0}
     lengths = [c["char_count"] for c in chunks]
